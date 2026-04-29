@@ -3,7 +3,7 @@ import logging
 import uuid
 from typing import Optional
 import soundfile as sf
-import urllib.request
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -23,17 +23,33 @@ class TTSService:
         model_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
         voices_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/voices.bin"
         
+        def download_file(url, path):
+            with requests.get(url, stream=True) as r:
+                r.raise_for_status()
+                with open(path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+        
         try:
             if not os.path.exists(model_path):
                 logger.info(f"Downloading Kokoro model from {model_url}...")
-                urllib.request.urlretrieve(model_url, model_path)
+                download_file(model_url, model_path)
             
             if not os.path.exists(voices_path):
                 logger.info(f"Downloading Kokoro voices from {voices_url}...")
-                urllib.request.urlretrieve(voices_url, voices_path)
+                download_file(voices_url, voices_path)
             
             print("MODEL SIZE:", os.path.getsize(model_path))
             print("VOICES SIZE:", os.path.getsize(voices_path))
+            print("MODEL FIRST BYTES:", open(model_path, "rb").read(10))
+            print("VOICES FIRST BYTES:", open(voices_path, "rb").read(10))
+
+            if os.path.getsize(model_path) < 300_000_000:
+                raise Exception("Model file corrupted or incomplete")
+            
+            if os.path.getsize(voices_path) < 5_000_000:
+                raise Exception("Voices file corrupted or incomplete")
             
             from kokoro_onnx import Kokoro
             self.kokoro = Kokoro(
