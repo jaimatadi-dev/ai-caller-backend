@@ -1,7 +1,7 @@
 import logging
 import time
 from typing import Optional
-import google.generativeai as genai
+from google import generativeai as genai
 from config import Config
 
 logger = logging.getLogger(__name__)
@@ -98,11 +98,18 @@ class GeminiService:
             self._check_rate_limit()
             try:
                 self.requests_this_minute += 1
-                model = genai.GenerativeModel('gemini-pro')
                 logger.info(f"Calling Gemini AI (Using Key {self.current_key_index + 1})")
                 
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 response = model.generate_content(prompt)
-                return response.text.strip()
+                
+                if hasattr(response, "text") and response.text:
+                    return response.text.strip()
+                
+                try:
+                    return response.candidates[0].content.parts[0].text.strip()
+                except:
+                    return "Maaf kijiye, mujhe samajh nahi aaya. Kya aap dohra sakte hain?"
                 
             except Exception as e:
                 error_msg = str(e).lower()
