@@ -98,7 +98,7 @@ class GeminiService:
             self._check_rate_limit()
             try:
                 self.requests_this_minute += 1
-                model = genai.GenerativeModel('gemini-1.5-flash-latest')
+                model = genai.GenerativeModel('gemini-pro')
                 logger.info(f"Calling Gemini AI (Using Key {self.current_key_index + 1})")
                 
                 response = model.generate_content(prompt)
