@@ -15,20 +15,15 @@ class TTSService:
         
         self.kokoro = None
         
-        model_path = "kokoro-v0_19.onnx"
-        voices_path = "voices.bin"
+        base_dir = os.path.dirname(__file__)
+        model_path = os.path.join(base_dir, "kokoro-v0_19.onnx")
+        voices_path = os.path.join(base_dir, "voices.bin")
         
         # Download logic
         model_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
         voices_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/voices.bin"
         
         try:
-            # Enforce fresh download to clear potentially corrupted files
-            if os.path.exists(model_path):
-                os.remove(model_path)
-            if os.path.exists(voices_path):
-                os.remove(voices_path)
-
             if not os.path.exists(model_path):
                 logger.info(f"Downloading Kokoro model from {model_url}...")
                 urllib.request.urlretrieve(model_url, model_path)
@@ -43,8 +38,7 @@ class TTSService:
             from kokoro_onnx import Kokoro
             self.kokoro = Kokoro(
                 model_path=model_path,
-                voices_path=voices_path,
-                use_cuda=False
+                voices_path=voices_path
             )
             logger.info("Kokoro model loaded successfully")
             
