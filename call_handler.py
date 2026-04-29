@@ -72,11 +72,15 @@ class CallHandler:
         message = task.get("message")
         
         try:
+            print(f"[DEBUG] Creating call state for {phone}...", flush=True)
             call_id = call_state_manager.create_call(phone, name)
             logger.info(f"Call started for {name} ({phone}) | Call ID: {call_id}")
+            print(f"[DEBUG] Call ID created: {call_id}", flush=True)
             
             # 1. Generate greeting
+            print(f"[DEBUG] Calling Gemini for greeting ({phone})...", flush=True)
             text_response = self.gemini_service.generate_response(name, message, history=[])
+            print(f"[DEBUG] Gemini responded: {text_response[:30]}...", flush=True)
             
             # Update state
             state = call_state_manager.get_call(call_id)
@@ -84,21 +88,28 @@ class CallHandler:
             state["last_response"] = text_response
             
             # 2. Convert to speech
+            print(f"[DEBUG] Calling TTS Service...", flush=True)
             wav_filepath = self.tts_service.text_to_speech(text_response)
             if not wav_filepath:
                 raise Exception("TTS Generation returned None.")
+            print(f"[DEBUG] TTS complete, saved at {wav_filepath}", flush=True)
                 
             audio_url = self._build_audio_url(wav_filepath)
             
             # 3. Send audio + phone to Mobile Bridge (WebSocket or HTTP fallback)
+            print(f"[DEBUG] Dispatching to mobile bridge...", flush=True)
             self._dispatch_to_mobile(phone, audio_url, call_id)
+            print(f"[DEBUG] Dispatched successfully.", flush=True)
             
             # 4. Start the timeout monitor loop
+            print(f"[DEBUG] Starting timeout monitor thread...", flush=True)
             threading.Thread(target=self._monitor_call_timeout, args=(call_id,), daemon=True).start()
             
+            print(f"[DEBUG] process_initial_call completed successfully.", flush=True)
             return True
             
         except Exception as e:
+            print(f"[DEBUG] Exception in process_initial_call: {str(e)}", flush=True)
             logger.error(f"Initial call processing failed for {phone}: {e}", exc_info=True)
             return False
 

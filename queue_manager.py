@@ -44,12 +44,25 @@ class QueueManager:
                 # Block until a task is available (1 sec timeout allows clean shutdown checking)
                 task = self.task_queue.get(timeout=1)
                 
+                print(f"\n======================================", flush=True)
                 print(f"📞 Processing task: {task}", flush=True)
                 logger.info(f"📞 Processing task: {task}")
                 logger.info(f"Popped task for {task['phone']} (Attempt {task['retry_count'] + 1})")
                 
                 # Process Call
-                success = self.call_handler.process_initial_call(task)
+                success = False
+                try:
+                    print(f"⚙️ Calling process_initial_call for {task['phone']}...", flush=True)
+                    logger.info(f"⚙️ Calling process_initial_call for {task['phone']}...")
+                    
+                    success = self.call_handler.process_initial_call(task)
+                    
+                    print(f"✅ Finished process_initial_call for {task['phone']} | Success: {success}", flush=True)
+                    logger.info(f"✅ Finished process_initial_call for {task['phone']} | Success: {success}")
+                except Exception as ex:
+                    print(f"❌ CRITICAL ERROR inside process_initial_call for {task['phone']}: {str(ex)}", flush=True)
+                    logger.error(f"❌ CRITICAL ERROR inside process_initial_call: {ex}", exc_info=True)
+                    success = False
                 
                 if not success and task["retry_count"] < Config.MAX_RETRIES:
                     task["retry_count"] += 1

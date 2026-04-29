@@ -1,5 +1,14 @@
 import os
+import sys
 import logging
+
+# FORCE logging to stdout so Gunicorn captures it
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    stream=sys.stdout
+)
+
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from config import Config
@@ -42,7 +51,11 @@ def initiate_call():
     Accepts customer data from Google Sheets (Trigger Layer)
     Validates input and adds request to the queue.
     """
+    print("🔥 /call HIT", flush=True)
+    logger.info("🔥 /call HIT")
+    
     data = request.get_json()
+    print(f"📥 Incoming data: {data}", flush=True)
     
     if not data:
         return jsonify({"error": "Invalid JSON input"}), 400
@@ -66,6 +79,9 @@ def initiate_call():
     
     # Add to queue (DO NOT process immediately)
     queue_manager.add_task(task_data)
+    
+    print("✅ Added to queue", flush=True)
+    logger.info("✅ Added to queue")
     
     return jsonify({
         "status": "queued",
