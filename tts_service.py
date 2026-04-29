@@ -23,6 +23,12 @@ class TTSService:
         voices_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/voices.bin"
         
         try:
+            # Enforce fresh download to clear potentially corrupted files
+            if os.path.exists(model_path):
+                os.remove(model_path)
+            if os.path.exists(voices_path):
+                os.remove(voices_path)
+
             if not os.path.exists(model_path):
                 logger.info(f"Downloading Kokoro model from {model_url}...")
                 urllib.request.urlretrieve(model_url, model_path)
@@ -31,13 +37,14 @@ class TTSService:
                 logger.info(f"Downloading Kokoro voices from {voices_url}...")
                 urllib.request.urlretrieve(voices_url, voices_path)
             
-            print("Model exists:", os.path.exists(model_path))
-            print("Voices exists:", os.path.exists(voices_path))
+            print("MODEL SIZE:", os.path.getsize(model_path))
+            print("VOICES SIZE:", os.path.getsize(voices_path))
             
             from kokoro_onnx import Kokoro
             self.kokoro = Kokoro(
                 model_path=model_path,
-                voices_path=voices_path
+                voices_path=voices_path,
+                use_cuda=False
             )
             logger.info("Kokoro model loaded successfully")
             
