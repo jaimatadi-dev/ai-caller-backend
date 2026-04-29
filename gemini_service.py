@@ -100,7 +100,7 @@ class GeminiService:
                 self.requests_this_minute += 1
                 logger.info(f"Calling Gemini AI (Using Key {self.current_key_index + 1})")
                 
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                model = genai.GenerativeModel("models/gemini-1.5-flash")
                 response = model.generate_content(prompt)
                 
                 if hasattr(response, "text") and response.text:
