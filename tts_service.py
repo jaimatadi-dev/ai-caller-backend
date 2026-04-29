@@ -15,10 +15,8 @@ class TTSService:
         
         self.kokoro = None
         
-        # Determine paths relative to the project root
-        project_root = os.path.dirname(__file__)
-        model_path = os.path.join(project_root, "kokoro-v0_19.onnx")
-        voices_path = os.path.join(project_root, "voices.bin")
+        model_path = "kokoro-v0_19.onnx"
+        voices_path = "voices.bin"
         
         # Download logic
         model_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
@@ -33,8 +31,14 @@ class TTSService:
                 logger.info(f"Downloading Kokoro voices from {voices_url}...")
                 urllib.request.urlretrieve(voices_url, voices_path)
             
+            print("Model exists:", os.path.exists(model_path))
+            print("Voices exists:", os.path.exists(voices_path))
+            
             from kokoro_onnx import Kokoro
-            self.kokoro = Kokoro(model_path, voices_path)
+            self.kokoro = Kokoro(
+                model_path=model_path,
+                voices_path=voices_path
+            )
             logger.info("Kokoro model loaded successfully")
             
         except ImportError:
