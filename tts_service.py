@@ -1,4 +1,6 @@
 import os
+os.environ["PHONEMIZER_ESPEAK_LIBRARY"] = "/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1"
+os.environ["PHONEMIZER_ESPEAK_PATH"] = "/usr/bin/espeak-ng"
 import logging
 import uuid
 from typing import Optional
@@ -52,6 +54,7 @@ class TTSService:
                 raise Exception("Voices file corrupted or incomplete")
             
             from kokoro_onnx import Kokoro
+
             self.kokoro = Kokoro(
                 model_path=model_path,
                 voices_path=voices_path
