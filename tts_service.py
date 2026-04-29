@@ -3,7 +3,7 @@ import logging
 import uuid
 from typing import Optional
 import soundfile as sf
-import numpy as np
+import urllib.request
 
 logger = logging.getLogger(__name__)
 
@@ -13,25 +13,34 @@ class TTSService:
         self.output_dir = os.path.join(os.path.dirname(__file__), 'audio_files')
         os.makedirs(self.output_dir, exist_ok=True)
         
-        self.is_loaded = False
         self.kokoro = None
         
+        # Determine paths relative to the project root
+        project_root = os.path.dirname(__file__)
+        model_path = os.path.join(project_root, "kokoro-v0_19.onnx")
+        voices_path = os.path.join(project_root, "voices.bin")
+        
+        # Download logic
+        model_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
+        voices_url = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/voices.bin"
+        
         try:
-            from kokoro_onnx import Kokoro
-            model_path = os.path.join(os.path.dirname(__file__), "kokoro-v0_19.onnx")
-            voices_path = os.path.join(os.path.dirname(__file__), "voices.bin")
+            if not os.path.exists(model_path):
+                logger.info(f"Downloading Kokoro model from {model_url}...")
+                urllib.request.urlretrieve(model_url, model_path)
             
-            # Load kokoro ONNX model locally if files exist
-            if os.path.exists(model_path) and os.path.exists(voices_path):
-                self.kokoro = Kokoro(model_path, voices_path)
-                self.is_loaded = True
-                logger.info("Kokoro ONNX TTS model loaded successfully.")
-            else:
-                logger.warning(f"Kokoro model files not found at {model_path}. Using mock TTS for development.")
+            if not os.path.exists(voices_path):
+                logger.info(f"Downloading Kokoro voices from {voices_url}...")
+                urllib.request.urlretrieve(voices_url, voices_path)
+            
+            from kokoro_onnx import Kokoro
+            self.kokoro = Kokoro(model_path, voices_path)
+            logger.info("Kokoro model loaded successfully")
+            
         except ImportError:
-            logger.warning("kokoro-onnx package not installed. Using mock TTS.")
+            logger.error("kokoro-onnx package not installed.")
         except Exception as e:
-            logger.error(f"Error loading Kokoro TTS: {e}")
+            logger.error(f"Error initializing Kokoro TTS: {e}")
 
     def text_to_speech(self, text: str) -> Optional[str]:
         """Converts text to speech and returns the file path."""
@@ -39,20 +48,17 @@ class TTSService:
             filename = f"tts_{uuid.uuid4().hex}.wav"
             filepath = os.path.join(self.output_dir, filename)
             
-            if self.is_loaded and self.kokoro:
-                logger.info(f"Generating TTS for text: '{text[:30]}...' -> {filepath}")
+            if self.kokoro:
+                logger.info(f"Generating TTS for text: '{text[:30]}...'")
                 samples, sample_rate = self.kokoro.create(
                     text, voice="af_sarah", speed=1.0, lang="en"
                 )
                 sf.write(filepath, samples, sample_rate)
+                logger.info(f"Generated TTS file: {filepath}")
+                return filepath
             else:
-                # Mock generation to prevent failing if ONNX models aren't present yet
-                logger.info(f"Mock TTS generating dummy audio for: '{text[:30]}...' -> {filepath}")
-                sample_rate = 22050
-                samples = np.zeros(sample_rate, dtype=np.float32) # 1 second of silence
-                sf.write(filepath, samples, sample_rate)
-                
-            return filepath
+                logger.error("TTS generation failed: Kokoro model is not loaded.")
+                return None
             
         except Exception as e:
             logger.error(f"TTS generation failed: {e}", exc_info=True)

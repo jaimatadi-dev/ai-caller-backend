@@ -170,7 +170,7 @@ class CallHandler:
 
     def _build_audio_url(self, filepath: str) -> str:
         filename = filepath.replace('\\', '/').split('/')[-1]
-        return f"http://127.0.0.1:{Config.PORT}/audio/{filename}"
+        return f"https://ai-caller-backend-1.onrender.com/audio/{filename}"
 
     def _monitor_call_timeout(self, call_id: str):
         """
