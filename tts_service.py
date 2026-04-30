@@ -1,4 +1,9 @@
 import os
+import espeakng_loader
+
+os.environ["PHONEMIZER_ESPEAK_LIBRARY"] = espeakng_loader.get_library_path()
+os.environ["PHONEMIZER_ESPEAK_PATH"] = espeakng_loader.get_binary_path()
+
 import logging
 import uuid
 from typing import Optional
