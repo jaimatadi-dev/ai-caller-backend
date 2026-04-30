@@ -173,7 +173,17 @@ class TTSService:
             final_audio = np.concatenate(all_samples)
             sf.write(output_path, final_audio, sample_rate)
             
-            logger.info(f"Generated TTS file: {output_path}")
+            # 4. Safety Check & Logging
+            if not os.path.exists(output_path):
+                logger.error(f"TTS file failed to write to disk at {output_path}")
+                return self._get_fallback_audio()
+                
+            file_size_kb = os.path.getsize(output_path) / 1024
+            filename = os.path.basename(output_path)
+            
+            logger.info(f"Audio saved at: {os.path.abspath(output_path)}")
+            logger.info(f"Filename: {filename} | File size: {file_size_kb:.2f} KB")
+            
             return output_path
             
         except Exception as e:

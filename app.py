@@ -26,6 +26,11 @@ app.config['SECRET_KEY'] = 'secret!'
 # Attach SocketIO
 socketio.init_app(app)
 
+# Ensure audio directory exists
+audio_dir = os.path.join(os.path.dirname(__file__), 'audio_files')
+os.makedirs(audio_dir, exist_ok=True)
+logger.info(f"Ensured audio directory exists at: {audio_dir}")
+
 # Start background worker immediately on load (handles single-process or master)
 queue_manager.start()
 
@@ -136,12 +141,53 @@ def receive_audio():
         logger.error(f"Error in HTTP /receive-audio: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
+@app.route("/test-tts", methods=["GET"])
+def test_tts():
+    """
+    Test endpoint to instantly verify TTS generation and serving.
+    """
+    logger.info("🔥 GET /test-tts HIT")
+    try:
+        from tts_service import TTSService
+        tts = TTSService()
+        
+        # Fixed Hindi text
+        text = "नमस्ते। मैं आपका टेस्टिंग एजेंट हूँ। क्या आपको मेरी आवाज़ सुनाई दे रही है?"
+        
+        logger.info("Starting test TTS generation...")
+        wav_filepath = tts.text_to_speech(text)
+        
+        if not wav_filepath or not os.path.exists(wav_filepath):
+            return jsonify({"error": "Failed to generate or find TTS audio file"}), 500
+            
+        filename = os.path.basename(wav_filepath)
+        audio_url = f"{request.host_url.rstrip('/')}/audio/{filename}"
+        
+        logger.info(f"Test TTS completed. URL: {audio_url}")
+        return jsonify({
+            "status": "success",
+            "audio_url": audio_url,
+            "filename": filename,
+            "text": text
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error in /test-tts: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/audio/<filename>", methods=["GET"])
 def get_audio(filename):
     """
     Provides public URLs for the generated audio files.
     """
     audio_dir = os.path.join(os.path.dirname(__file__), 'audio_files')
+    file_path = os.path.join(audio_dir, filename)
+    
+    if not os.path.exists(file_path):
+        logger.error(f"Audio file not found when serving: {file_path}")
+        return jsonify({"error": "Audio file not found"}), 404
+        
+    logger.info(f"Serving audio file: {filename}")
     return send_from_directory(audio_dir, filename)
 
 if __name__ == "__main__":

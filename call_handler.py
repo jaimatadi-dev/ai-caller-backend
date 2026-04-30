@@ -88,17 +88,24 @@ class CallHandler:
             state["last_response"] = text_response
             
             # 2. Convert to speech
+            logger.info(f"Calling TTS Service for {phone}...")
             print(f"[DEBUG] Calling TTS Service...", flush=True)
             wav_filepath = self.tts_service.text_to_speech(text_response)
             if not wav_filepath:
+                logger.error("TTS Generation returned None.")
                 raise Exception("TTS Generation returned None.")
+            logger.info(f"TTS complete, saved at {wav_filepath}")
             print(f"[DEBUG] TTS complete, saved at {wav_filepath}", flush=True)
                 
             audio_url = self._build_audio_url(wav_filepath)
+            logger.info(f"Final audio URL generated: {audio_url}")
+            print(f"[DEBUG] Final audio URL: {audio_url}", flush=True)
             
             # 3. Send audio + phone to Mobile Bridge (WebSocket or HTTP fallback)
+            logger.info(f"Dispatching to mobile bridge...")
             print(f"[DEBUG] Dispatching to mobile bridge...", flush=True)
             self._dispatch_to_mobile(phone, audio_url, call_id)
+            logger.info(f"Dispatched successfully.")
             print(f"[DEBUG] Dispatched successfully.", flush=True)
             
             # 4. Start the timeout monitor loop
