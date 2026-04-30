@@ -10,6 +10,10 @@ from typing import Optional
 import soundfile as sf
 import numpy as np
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+AUDIO_DIR = os.path.join(BASE_DIR, "audio_files")
+os.makedirs(AUDIO_DIR, exist_ok=True)
+
 logger = logging.getLogger(__name__)
 
 class TTSService:
@@ -23,11 +27,7 @@ class TTSService:
         return cls._instance
 
     def _init_service(self):
-        # 4. Smart Caching: ./audio_cache/
-        base_dir = os.path.dirname(__file__)
-        self.cache_dir = os.path.join(base_dir, 'audio_cache')
-        os.makedirs(self.cache_dir, exist_ok=True)
-        
+        self.cache_dir = AUDIO_DIR
         self.tts = None
         self._load_model()
         

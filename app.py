@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+AUDIO_DIR = os.path.join(BASE_DIR, "audio_files")
+os.makedirs(AUDIO_DIR, exist_ok=True)
+logger.info(f"Ensured audio directory exists at: {AUDIO_DIR}")
+
 # Attach SocketIO
 socketio.init_app(app)
-
-# Ensure audio directory exists
-audio_dir = os.path.join(os.path.dirname(__file__), 'audio_files')
-os.makedirs(audio_dir, exist_ok=True)
-logger.info(f"Ensured audio directory exists at: {audio_dir}")
 
 # Start background worker immediately on load (handles single-process or master)
 queue_manager.start()
@@ -180,15 +180,15 @@ def get_audio(filename):
     """
     Provides public URLs for the generated audio files.
     """
-    audio_dir = os.path.join(os.path.dirname(__file__), 'audio_files')
-    file_path = os.path.join(audio_dir, filename)
+    file_path = os.path.join(AUDIO_DIR, filename)
+    logger.info(f"Looking for file at: {file_path}")
     
     if not os.path.exists(file_path):
         logger.error(f"Audio file not found when serving: {file_path}")
         return jsonify({"error": "Audio file not found"}), 404
         
     logger.info(f"Serving audio file: {filename}")
-    return send_from_directory(audio_dir, filename)
+    return send_from_directory(AUDIO_DIR, filename)
 
 if __name__ == "__main__":
     logger.info(f"Starting Flask-SocketIO App on port {Config.PORT}")
