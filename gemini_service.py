@@ -63,20 +63,20 @@ class GeminiService:
         # PREDEFINED RESPONSE OPTIMIZATIONS (Only apply if no history)
         if not history and (not user_message_clean or user_message_clean in ["hello", "hi", "hey"]):
             logger.info("Using predefined greeting, saving Gemini API call.")
-            return f"Namaste {name}, main aapki call agent hoon. Main aapki kis tarah se sahayata kar sakti hoon?"
+            return f"नमस्ते {name}, मैं आपकी कॉल एजेंट हूँ। मैं आपकी किस तरह से सहायता कर सकती हूँ?"
 
         if "price" in user_message_clean or "cost" in user_message_clean or "charge" in user_message_clean:
             logger.info("Using predefined pricing response, saving Gemini API call.")
-            return "Hamari service bilkul zero cost aur free of charge hai. Kya aapko aur koi jankari chahiye?"
+            return "हमारी सर्विस बिल्कुल जीरो कॉस्ट और मुफ्त है। क्या आपको और कोई जानकारी चाहिए?"
             
         if "bye" in user_message_clean or "thank" in user_message_clean:
             logger.info("Using predefined closing response.")
-            return "Call karne ke liye dhanyawad. Aapka din shubh ho."
+            return "कॉल करने के लिए धन्यवाद। आपका दिन शुभ हो।"
 
         # USE GEMINI AI for custom questions
         if not self.api_keys:
             logger.error("Cannot use Gemini AI: No API keys configured.")
-            return "Maaf kijiye, abhi system me technical issue hai. Hum aapse baad me sampark karenge."
+            return "माफ़ कीजिये, अभी सिस्टम में टेक्निकल समस्या है। हम आपसे बाद में संपर्क करेंगे।"
 
         history_context = ""
         if history:
@@ -85,10 +85,15 @@ class GeminiService:
                 history_context += f"{role}: {msg['content']}\n"
 
         prompt = (
-            f"You are a polite Indian call agent speaking in Hinglish.\n"
+            f"You are a polite Indian call agent.\n"
             f"Customer name: {name}\n"
             f"Goal: Greet the user, ask their requirement, and guide them about the service.\n"
-            f"Keep responses short, natural, and conversational.\n\n"
+            f"STRICT RULES:\n"
+            f"- Force output in pure Hindi (Devanagari script ONLY).\n"
+            f"- No Hinglish allowed.\n"
+            f"- Keep responses conversational like a real Indian call agent.\n"
+            f"- KEEP IT SHORT. Maximum 1-2 sentences per response.\n"
+            f"- NO LONG PARAGRAPHS.\n\n"
             f"Conversation History:\n{history_context}\n"
             f"Customer says: {user_message}"
         )
@@ -109,7 +114,7 @@ class GeminiService:
                 try:
                     return response.candidates[0].content.parts[0].text.strip()
                 except:
-                    return "Maaf kijiye, mujhe samajh nahi aaya. Kya aap dohra sakte hain?"
+                    return "माफ़ कीजिये, मुझे समझ नहीं आया। क्या आप दोहरा सकते हैं?"
                 
             except Exception as e:
                 error_msg = str(e).lower()
@@ -126,4 +131,4 @@ class GeminiService:
                         continue
                     break
 
-        return "Maaf kijiye, mujhe samajh nahi aaya. Kya aap dohra sakte hain?"
+        return "माफ़ कीजिये, मुझे समझ नहीं आया। क्या आप दोहरा सकते हैं?"

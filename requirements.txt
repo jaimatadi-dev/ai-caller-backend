@@ -6,4 +6,5 @@ google-generativeai>=0.7.2
 onnxruntime>=1.24.1
 soundfile==0.12.1
 numpy>=2.1.0
-kokoro-onnx>=0.3.0
+sherpa-onnx
+psutil>=5.9.0
