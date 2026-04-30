@@ -54,8 +54,9 @@ class TTSService:
         model_dir = os.path.join(base_dir, "models", "hi_IN")
         
         if not os.path.exists(model_dir):
-            logger.error(f"Model directory not found: {model_dir}. Please ensure model files are placed here.")
-            return
+            raise RuntimeError(f"TTS model missing at {model_dir}")
+            
+        logger.info(f"Loading TTS model from {model_dir}")
             
         onnx_file = ""
         tokens_file = ""
@@ -70,8 +71,7 @@ class TTSService:
                     tokens_file = os.path.join(root, f)
                     
         if not onnx_file or not tokens_file or not data_dir:
-            logger.error("Could not find required Sherpa-ONNX files (ONNX, tokens, or espeak-ng-data) in ./models/hi_IN/")
-            return
+            raise RuntimeError(f"Could not find required Sherpa-ONNX files (ONNX, tokens, or espeak-ng-data) in {model_dir}")
             
         try:
             vits = sherpa_onnx.OfflineTtsVitsModelConfig(
@@ -86,7 +86,7 @@ class TTSService:
             )
             
             self.tts = sherpa_onnx.OfflineTts(tts_config)
-            logger.info("Sherpa-ONNX Hindi TTS model loaded successfully (Singleton).")
+            logger.info("TTS model loaded successfully")
             self._log_memory("After Model Load")
         except Exception as e:
             logger.error(f"Error loading Sherpa-ONNX model: {e}")
