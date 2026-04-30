@@ -1,6 +1,4 @@
 import os
-os.environ["PHONEMIZER_ESPEAK_LIBRARY"] = "/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1"
-os.environ["PHONEMIZER_ESPEAK_PATH"] = "/usr/bin/espeak-ng"
 import logging
 import uuid
 from typing import Optional
