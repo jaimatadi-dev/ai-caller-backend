@@ -1,0 +1,11 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+venv/
+env/
+.env
+audio_files/
+.python-version
+build.sh
