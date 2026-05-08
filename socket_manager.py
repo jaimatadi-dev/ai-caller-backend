@@ -47,16 +47,16 @@ def handle_register(data):
 def handle_audio_response(data):
     """
     Receives customer audio from the Android bridge over WebSocket.
-    Expected data: { "call_id": "...", "audio_data": "base64_encoded_string" }
+    Expected data: { "call_id": "...", "audio": "base64_encoded_string" }
     """
     call_id = data.get("call_id")
-    audio_b64 = data.get("audio_data") 
+    audio_b64 = data.get("audio") 
     
     if not call_id or not audio_b64:
-        logger.warning("Received invalid audio_response WebSocket event (missing call_id or audio_data).")
-        return {"status": "error", "message": "call_id and audio_data required"}
+        logger.warning("Received invalid audio_response WebSocket event (missing call_id or audio).")
+        return {"status": "error", "message": "call_id and audio required"}
         
-    logger.info(f"WebSocket audio received for call {call_id}")
+    logger.info(f"[FLOW] Audio received from Android Bridge for call {call_id}")
     
     # Update call activity to prevent timeout
     from call_handler import call_state_manager
@@ -68,41 +68,63 @@ def handle_audio_response(data):
     filepath = os.path.join(upload_dir, filename)
     
     try:
-        # Decode base64 and save as a wav file
+        # 1. Convert base64 and save as a proper WAV file with header
+        import wave
         audio_bytes = base64.b64decode(audio_b64)
-        with open(filepath, "wb") as f:
-            f.write(audio_bytes)
+        
+        with wave.open(filepath, "wb") as wav_file:
+            wav_file.setnchannels(1)  # Mono
+            wav_file.setsampwidth(2) # 16-bit PCM (2 bytes)
+            wav_file.setframerate(16000) # 16kHz
+            wav_file.writeframes(audio_bytes)
+            
+        logger.info(f"Saved incoming PCM to WAV: {filepath}")
             
         from queue_manager import queue_manager
         
-        # Process the audio synchronously (STT -> Gemini -> TTS)
+        # 2, 3, 4, 5. Process the audio synchronously (STT -> Gemini -> TTS)
         audio_url = queue_manager.call_handler.process_audio_response(call_id, filepath)
         
-        # Emit back the newly generated audio URL so Android bridge plays it
+        # Memory Safety: Clean temporary user audio file
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        # 6. Emit back the newly generated audio URL so Android bridge plays it
         socketio.emit("play_audio", {"audio_url": audio_url}, to=request.sid)
-        logger.info(f"Emitted 'play_audio' for call {call_id} to SID {request.sid}")
+        logger.info(f"[FLOW] Audio sent back to Android Bridge for call {call_id}: {audio_url}")
         
     except Exception as e:
         logger.error(f"Error processing WS audio for {call_id}: {e}", exc_info=True)
+        # Ensure cleanup even on error
+        if os.path.exists(filepath):
+            os.remove(filepath)
         return {"status": "error", "message": str(e)}
 
-@socketio.on("call_status")
-def handle_call_status(data):
-    """
-    Handles generic call events from Android device.
-    Expected data: { "call_id": "...", "status": "started|answered|ended" }
-    """
+@socketio.on("call_started")
+def handle_call_started(data):
     call_id = data.get("call_id")
-    status = data.get("status") 
-    
-    if call_id and status:
-        logger.info(f"WebSocket status update for call {call_id}: {status}")
+    logger.info(f"Android Bridge Event: call_started for ID {call_id}")
+    if call_id:
         from call_handler import call_state_manager
-        
-        state = call_state_manager.get_call(call_id)
-        if state:
-            call_state_manager.update_status(call_id, status)
-            call_state_manager.update_activity(call_id)
+        call_state_manager.update_status(call_id, "started")
+        call_state_manager.update_activity(call_id)
+
+@socketio.on("call_answered")
+def handle_call_answered(data):
+    call_id = data.get("call_id")
+    logger.info(f"Android Bridge Event: call_answered for ID {call_id}")
+    if call_id:
+        from call_handler import call_state_manager
+        call_state_manager.update_status(call_id, "answered")
+        call_state_manager.update_activity(call_id)
+
+@socketio.on("call_ended")
+def handle_call_ended(data):
+    call_id = data.get("call_id")
+    logger.info(f"Android Bridge Event: call_ended for ID {call_id}")
+    if call_id:
+        from call_handler import call_state_manager
+        call_state_manager.end_call(call_id)
 
 def emit_new_call(call_id: str, phone: str, audio_url: str):
     """
@@ -119,4 +141,4 @@ def emit_new_call(call_id: str, phone: str, audio_url: str):
         socketio.emit("new_call", data)
         logger.info(f"Broadcasted 'new_call' to {len(active_devices)} active WebSocket devices.")
     else:
-        logger.warning("No active WebSocket devices connected to emit 'new_call'")
+        logger.warning("No active device available")

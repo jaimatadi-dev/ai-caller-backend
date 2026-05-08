@@ -163,10 +163,11 @@ class CallHandler:
             # Import dynamically to avoid circular dependencies
             from socket_manager import emit_new_call, active_devices
             
-            if active_devices:
-                emit_new_call(call_id, phone, audio_url)
-            else:
-                logger.info("No WebSocket devices connected. Falling back to HTTP /dispatch-call webhook.")
+            # Delegate logic to socket_manager which will check devices and log appropriately
+            emit_new_call(call_id, phone, audio_url)
+            
+            if not active_devices:
+                # HTTP fallback if no WebSockets
                 requests.post(
                     f"http://127.0.0.1:{Config.PORT}/dispatch-call",
                     json={"phone": phone, "audio_url": audio_url, "call_id": call_id},
