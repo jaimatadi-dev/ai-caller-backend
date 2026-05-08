@@ -171,6 +171,11 @@ class TTSService:
                 
             # Write directly to destination (concatenating dynamically instead of multiple disk writes)
             final_audio = np.concatenate(all_samples)
+            
+            # Apply Professional Gain Boost (1.8x) for telephony clarity
+            # Ensure we don't clip by capping at 1.0 (float range)
+            final_audio = np.clip(final_audio * 1.8, -1.0, 1.0)
+            
             sf.write(output_path, final_audio, sample_rate)
             
             # 4. Safety Check & Logging
