@@ -52,6 +52,8 @@ def handle_audio_response(data):
     call_id = data.get("call_id")
     audio_b64 = data.get("audio") 
     
+    logger.info(f"📥 Received audio_response for call: {call_id} (size: {len(audio_b64) if audio_b64 else 0})")
+
     if not call_id or not audio_b64:
         logger.warning("Received invalid audio_response WebSocket event (missing call_id or audio).")
         return {"status": "error", "message": "call_id and audio required"}
